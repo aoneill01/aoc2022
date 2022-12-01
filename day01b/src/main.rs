@@ -1,13 +1,11 @@
 fn main() {
-    let values = include_str!("../input.txt")
-        .lines()
-        .map(|n| n.parse::<i32>().unwrap())
-        .collect::<Vec<i32>>();
-    let mut count: u32 = 0;
+    let mut elf_calories: Vec<i32> = include_str!("../input.txt")
+        .split("\n\n")
+        .map(|s| s.lines().map(|cal| cal.parse::<i32>().unwrap()).sum())
+        .collect();
 
-    for i in 0..values.len() - 3 {
-        count += if values[i + 3] > values[i] { 1 } else { 0};
-    }
+    elf_calories.sort();
+    elf_calories.reverse();
 
-    println!("{}", count);
+    println!("{}", elf_calories.iter().take(3).sum::<i32>());
 }

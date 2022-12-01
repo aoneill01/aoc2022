@@ -1,13 +1,9 @@
 fn main() {
-    let values = include_str!("../input.txt")
-        .lines()
-        .map(|n| n.parse::<i32>().unwrap())
-        .collect::<Vec<i32>>();
-    let mut count: u32 = 0;
+    let result = include_str!("../input.txt")
+        .split("\n\n")
+        .map(|s| s.lines().map(|cal| cal.parse::<i32>().unwrap()).sum())
+        .max()
+        .unwrap_or(-1);
 
-    for i in 0..values.len() - 1 {
-        count += if values[i + 1] > values[i] { 1 } else { 0};
-    }
-
-    println!("{}", count);
+    println!("{}", result);
 }
