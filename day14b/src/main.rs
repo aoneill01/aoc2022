@@ -3,19 +3,28 @@ use std::collections::HashSet;
 fn main() {
     let rocks = parse_input();
     let mut sand = HashSet::<(i32, i32)>::new();
+    let mut stream: Vec<(i32, i32)> = Vec::new();
+    stream.push((500, 0));
     let floor = rocks.iter().map(|(_, y)| y).max().unwrap() + 2;
 
-    while drop_sand(&rocks, &mut sand, floor) {}
+    while drop_sand(&rocks, &mut sand, &mut stream, floor) {}
 
     println!("{}", sand.len());
 }
 
-fn drop_sand(rocks: &HashSet<(i32, i32)>, sand: &mut HashSet<(i32, i32)>, floor: i32) -> bool {
-    let mut loc = (500, 0);
+fn drop_sand(
+    rocks: &HashSet<(i32, i32)>,
+    sand: &mut HashSet<(i32, i32)>,
+    stream: &mut Vec<(i32, i32)>,
+    floor: i32,
+) -> bool {
+    let last = stream.pop();
 
-    if sand.contains(&loc) {
+    if last.is_none() {
         return false;
     }
+
+    let mut loc = last.unwrap();
 
     while loc.1 < floor - 1 {
         let down = (loc.0, loc.1 + 1);
@@ -23,16 +32,19 @@ fn drop_sand(rocks: &HashSet<(i32, i32)>, sand: &mut HashSet<(i32, i32)>, floor:
         let down_right = (loc.0 + 1, loc.1 + 1);
 
         if !rocks.contains(&down) && !sand.contains(&down) {
+            stream.push(loc);
             loc = down;
             continue;
         }
 
         if !rocks.contains(&down_left) && !sand.contains(&down_left) {
+            stream.push(loc);
             loc = down_left;
             continue;
         }
 
         if !rocks.contains(&down_right) && !sand.contains(&down_right) {
+            stream.push(loc);
             loc = down_right;
             continue;
         }
