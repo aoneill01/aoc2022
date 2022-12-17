@@ -1,8 +1,8 @@
 const fs = require("fs");
 
-const map = parseInput("input.txt");
+const [map, hasRate] = parseInput("input.txt");
 
-const result = pressure(map, "AA", null, new Set(), 30);
+const result = pressure(map, "AA", hasRate, 30);
 console.log(result);
 
 function parseInput(filename) {
@@ -10,6 +10,7 @@ function parseInput(filename) {
     /Valve (\S+) has flow rate=(\d+); tunnel[s]? lead[s]? to valve[s]? (.*)/;
 
   const map = {};
+  const hasRate = [];
 
   for (const line of fs
     .readFileSync(filename, "utf-8")
@@ -17,66 +18,53 @@ function parseInput(filename) {
     .filter(Boolean)) {
     const match = regex.exec(line);
 
-    const connectedTo = match[3]
-      .split(", ")
-      .map((valve) => ({ valve, distance: 1 }));
+    const connectedTo = match[3].split(", ");
 
     map[match[1]] = {
       rate: +match[2],
       connectedTo,
+      distance: {}
     };
-  }
 
-  for (const valve of Object.keys(map)) {
-    if (map[valve].rate === 0 && valve !== "AA") {
-      for (const connection of map[valve].connectedTo) {
-        const sourceValve = connection.valve;
-        const tmp = map[sourceValve].connectedTo.find((v) => v.valve === valve);
-        map[sourceValve].connectedTo = map[sourceValve].connectedTo
-          .filter((v) => v.valve !== valve)
-          .concat(
-            map[valve].connectedTo
-              .filter((v) => v.valve !== sourceValve)
-              .map((v) => ({
-                valve: v.valve,
-                distance: tmp.distance + v.distance,
-              }))
-          );
-      }
-      delete map[valve];
+    if (map[match[1]].rate) {
+      hasRate.push(match[1]);
     }
   }
 
-  return map;
+  for (const valve of hasRate) {
+    setDistance(map, valve, valve, 0);
+  }
+
+  return [map, hasRate];
 }
 
-function pressure(map, location, previous, seen, remainingDays) {
+function setDistance(map, current, source, distance) {
+  const c = map[current];
+
+  if (!(source in c.distance) || distance < c.distance[source]) {
+    c.distance[source] = distance;
+
+    for (const connection of c.connectedTo) {
+      setDistance(map, connection, source, distance + 1);
+    }
+  }
+}
+
+function pressure(map, location, unseen, remainingDays) {
   if (remainingDays <= 0) return 0;
 
   const curr = map[location];
 
   const candidates = [];
-  if (curr.rate && !seen.has(location)) {
-    const newSeen = new Set(seen);
-    newSeen.add(location);
-    candidates.push(
-      curr.rate * (remainingDays - 1) +
-        pressure(map, location, null, newSeen, remainingDays - 1)
-    );
-  }
-  for (const connection of curr.connectedTo.filter(
-    (c) => c.valve !== previous
-  )) {
-    candidates.push(
-      pressure(
-        map,
-        connection.valve,
-        location,
-        seen,
-        remainingDays - connection.distance
-      )
-    );
+
+  for (const dest of unseen) {
+    if (curr.distance[dest] + 1 >= remainingDays) continue;
+    const rate = map[dest].rate;
+    const updatedUnseen = unseen.filter((s) => s !== dest);
+    const updatedRemaining = remainingDays - (curr.distance[dest] + 1);
+    candidates.push(rate * updatedRemaining + pressure(map, dest, updatedUnseen, updatedRemaining));
   }
 
+  if (candidates.length === 0) return 0;
   return Math.max(...candidates);
 }
